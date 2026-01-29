@@ -1,20 +1,20 @@
-import moment from 'moment';
-import 'moment-duration-format';
-import path from 'path';
-import * as vscode from 'vscode';
-import { TimeTracker } from './tracker/TimeTracker';
-import { TimeTrackerState } from './tracker/TimeTrackerState';
-import fs from 'fs';
+import moment from "moment";
+import "moment-duration-format";
+import path from "path";
+import * as vscode from "vscode";
+import { TimeTracker } from "./tracker/TimeTracker";
+import { TimeTrackerState } from "./tracker/TimeTrackerState";
+import fs from "fs";
 
 const tracker: TimeTracker = new TimeTracker();
 let statusBarItem: vscode.StatusBarItem;
 let useCompactStatusPanel = false;
 
-let ICON_STARTED = '$(debug-start)';
-let ICON_STOPPED = '$(debug-stop)';
+let ICON_STARTED = "$(debug-start)";
+let ICON_STOPPED = "$(debug-stop)";
 //const ICON_STARTED = '$(watch)';
 //const ICON_STOPPED = '';
-let ICON_PAUSED = '$(debug-pause)';
+let ICON_PAUSED = "$(debug-pause)";
 
 const COMMAND_START = "timetracker.start";
 const COMMAND_STOP = "timetracker.stop";
@@ -22,133 +22,189 @@ const COMMAND_PAUSE = "timetracker.pause";
 const COMMAND_RECOMPUTE = "timetracker.recompute";
 
 export function activate(context: vscode.ExtensionContext) {
-	context.subscriptions.push(
-		vscode.commands.registerCommand(COMMAND_START, () => {
-			if (tracker.start(updateStatusBarItem)) {
-				updateStatusBarItem(tracker);
-			}
-		}),
-		vscode.commands.registerCommand(COMMAND_STOP, () => {
-			if (tracker.stop()) {
-				updateStatusBarItem(tracker);
-			}
-		}),
-		vscode.commands.registerCommand(COMMAND_PAUSE, () => {
-			if (tracker.state === TimeTrackerState.Started) {
-				if (tracker.pause()) {
-					updateStatusBarItem(tracker);
-				}
-			}
-		}),
-		vscode.commands.registerCommand(COMMAND_RECOMPUTE, () => {
-			if (tracker.recompute()) {
-				updateStatusBarItem(tracker);
-			}
-		})
-	);
+  context.subscriptions.push(
+    vscode.commands.registerCommand(COMMAND_START, () => {
+      if (tracker.start(updateStatusBarItem)) {
+        updateStatusBarItem(tracker);
+      }
+    }),
+    vscode.commands.registerCommand(COMMAND_STOP, () => {
+      if (tracker.stop()) {
+        updateStatusBarItem(tracker);
+      }
+    }),
+    vscode.commands.registerCommand(COMMAND_PAUSE, () => {
+      if (tracker.state === TimeTrackerState.Started) {
+        if (tracker.pause()) {
+          updateStatusBarItem(tracker);
+        }
+      }
+    }),
+    vscode.commands.registerCommand(COMMAND_RECOMPUTE, () => {
+      if (tracker.recompute()) {
+        updateStatusBarItem(tracker);
+      }
+    }),
+  );
 
-	statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1000);
-	statusBarItem.show();
+  statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    1000,
+  );
+  statusBarItem.show();
 
-	context.subscriptions.push(statusBarItem);
+  context.subscriptions.push(statusBarItem);
 
-	context.subscriptions.push(
-		vscode.window.onDidChangeVisibleTextEditors(() => {
-			reactOnActions();
-		}),
-		vscode.window.onDidChangeActiveTextEditor(() => {
-			reactOnActions();
-		}),
-		vscode.window.onDidChangeTextEditorSelection((e) => {
-			if (path.basename(e.textEditor.document.fileName) !== tracker.dataFileName) {
-				reactOnActions();
-			}
-		})
-	);
+  context.subscriptions.push(
+    vscode.window.onDidChangeVisibleTextEditors(() => {
+      reactOnActions();
+    }),
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      reactOnActions();
+    }),
+    vscode.window.onDidChangeTextEditorSelection((e) => {
+      if (
+        path.basename(e.textEditor.document.fileName) !== tracker.dataFileName
+      ) {
+        reactOnActions();
+      }
+    }),
+  );
 
-	const config = vscode.workspace.getConfiguration('timetracker');
+  const config = vscode.workspace.getConfiguration("timetracker");
 
-	const autoStartTimeTracking = config.autostart.autoStartTimeTracking;
-	const autoCreateTimeTrackingFile = config.autostart.autoCreateTimeTrackingFile;
-	const askAboutStart = config.autostart.askAboutAutoStart;
-	const pauseAfter = config.pauseAfter;
-	useCompactStatusPanel = config.useCompactStatusPanel;
+  const autoStartTimeTracking = config.autostart.autoStartTimeTracking;
+  const autoCreateTimeTrackingFile =
+    config.autostart.autoCreateTimeTrackingFile;
+  const askAboutStart = config.autostart.askAboutAutoStart;
+  const pauseAfter = config.pauseAfter;
 
-	if (useCompactStatusPanel) {
-		ICON_STARTED = '$(watch)';
-		ICON_STOPPED = '';
-	}
+  const dotTimeTrackerName = config.dotTimeTrackerName;
+  const dotTimeTrackerPath = config.dotTimeTrackerPath;
 
-	tracker.maxIdleTimeBeforeCloseSession = pauseAfter;
+  if (dotTimeTrackerName && dotTimeTrackerName !== ".timetracker") {
+    // Validate the file name
+    const invalidChars = /[<>:"\/\\|?*\x00-\x1F]/g;
+    if (invalidChars.test(dotTimeTrackerName)) {
+      vscode.window.showErrorMessage(
+        `Invalid .timetracker file name: "${dotTimeTrackerName}". Reverting to default ".timetracker".`,
+      );
+    } else {
+      tracker.dataFileName = dotTimeTrackerName;
+    }
+  }
 
-	const rootFolder = vscode.workspace.rootPath;
+  if (dotTimeTrackerPath && dotTimeTrackerPath !== "") {
+    tracker.setSubPath(dotTimeTrackerPath);
+  }
 
-	if (autoStartTimeTracking) {
-		if (autoCreateTimeTrackingFile) {
-			if (askAboutStart) {
-				vscode.window.showInformationMessage("Do you want to create time tracker storage and start time tracking?", "Yes", "No").then(value => {
-					if (value === "Yes") {
-						tracker.start(updateStatusBarItem);
-					}
-				});
-			} else {
-				tracker.start(updateStatusBarItem);
-			}
-		} else {
-			if (rootFolder) {
-				const filePath = path.join(rootFolder, tracker.dataFileName);
-				if (fs.existsSync(filePath)) {
-					if (askAboutStart) {
-						vscode.window.showInformationMessage("Do you want to start time tracking?", "Yes", "No").then(value => {
-							if (value === "Yes") {
-								tracker.start(updateStatusBarItem);
-							}
-						});
-					} else {
-						tracker.start(updateStatusBarItem);
-					}
-				}
-			}
-		}
-	}
+  useCompactStatusPanel = config.useCompactStatusPanel;
 
-	updateStatusBarItem(tracker);
+  if (useCompactStatusPanel) {
+    ICON_STARTED = "$(watch)";
+    ICON_STOPPED = "";
+  }
+
+  tracker.maxIdleTimeBeforeCloseSession = pauseAfter;
+
+  const rootFolder = vscode.workspace.rootPath;
+
+  if (autoStartTimeTracking) {
+    if (autoCreateTimeTrackingFile) {
+      if (askAboutStart) {
+        vscode.window
+          .showInformationMessage(
+            "Do you want to create time tracker storage and start time tracking?",
+            "Yes",
+            "No",
+          )
+          .then((value) => {
+            if (value === "Yes") {
+              tracker.start(updateStatusBarItem);
+            }
+          });
+      } else {
+        tracker.start(updateStatusBarItem);
+      }
+    } else {
+      if (rootFolder) {
+        const filePath = tracker.getTrackingFilePath();
+        if (fs.existsSync(filePath)) {
+          if (askAboutStart) {
+            vscode.window
+              .showInformationMessage(
+                "Do you want to start time tracking?",
+                "Yes",
+                "No",
+              )
+              .then((value) => {
+                if (value === "Yes") {
+                  tracker.start(updateStatusBarItem);
+                }
+              });
+          } else {
+            tracker.start(updateStatusBarItem);
+          }
+        }
+      }
+    }
+  }
+
+  updateStatusBarItem(tracker);
 }
 
 function reactOnActions() {
-	switch (tracker.state) {
-		case TimeTrackerState.Started:
-			tracker.resetIdleTime();
-			break;
-		case TimeTrackerState.Paused:
-			tracker.continue();
-			break;
-		case TimeTrackerState.Stopped:
-			break;
-	}
+  switch (tracker.state) {
+    case TimeTrackerState.Started:
+      tracker.resetIdleTime();
+      break;
+    case TimeTrackerState.Paused:
+      tracker.continue();
+      break;
+    case TimeTrackerState.Stopped:
+      break;
+  }
 }
 
 function updateStatusBarItem(timeTracker: TimeTracker) {
-	const data = timeTracker.trackedData;
-	if (data) {
-		const currentSessionSeconds = tracker.currentSession?.currentDuration() ?? 0;
-		const totalSeconds = data.totalTime + currentSessionSeconds;
-		const icon = timeTracker.state === TimeTrackerState.Started ? ICON_STARTED : timeTracker.state === TimeTrackerState.Stopped ? ICON_STOPPED : ICON_PAUSED;
-		const state = timeTracker.state === TimeTrackerState.Started ? 'Active' : timeTracker.state === TimeTrackerState.Stopped ? 'Inactive' : 'Paused';
+  const data = timeTracker.trackedData;
+  if (data) {
+    const currentSessionSeconds =
+      tracker.currentSession?.currentDuration() ?? 0;
+    const totalSeconds = data.totalTime + currentSessionSeconds;
+    const icon =
+      timeTracker.state === TimeTrackerState.Started
+        ? ICON_STARTED
+        : timeTracker.state === TimeTrackerState.Stopped
+          ? ICON_STOPPED
+          : ICON_PAUSED;
+    const state =
+      timeTracker.state === TimeTrackerState.Started
+        ? "Active"
+        : timeTracker.state === TimeTrackerState.Stopped
+          ? "Inactive"
+          : "Paused";
 
-		const currentSessionTime = moment.duration(currentSessionSeconds, 's').format('hh:mm:ss', { trim: false });
-		const totalTime = moment.duration(totalSeconds, 's').format('hh:mm', { trim: false });
+    const currentSessionTime = moment
+      .duration(currentSessionSeconds, "s")
+      .format("hh:mm:ss", { trim: false });
+    const totalTime = moment
+      .duration(totalSeconds, "s")
+      .format("hh:mm", { trim: false });
 
-		if (useCompactStatusPanel) {
-			statusBarItem.text = `${icon}${totalTime}+${currentSessionTime}`;
-			statusBarItem.tooltip = `State: ${state}   Total: ${totalTime}   Current session: ${currentSessionTime}`;
-		} else {
-			statusBarItem.text = `${icon} ${state}   Total: ${totalTime}   Current session: ${currentSessionTime}`;
-		}
-		statusBarItem.command = timeTracker.state === TimeTrackerState.Started ? COMMAND_STOP : COMMAND_START;
-	}
+    if (useCompactStatusPanel) {
+      statusBarItem.text = `${icon}${totalTime}+${currentSessionTime}`;
+      statusBarItem.tooltip = `State: ${state}   Total: ${totalTime}   Current session: ${currentSessionTime}`;
+    } else {
+      statusBarItem.text = `${icon} ${state}   Total: ${totalTime}   Current session: ${currentSessionTime}`;
+    }
+    statusBarItem.command =
+      timeTracker.state === TimeTrackerState.Started
+        ? COMMAND_STOP
+        : COMMAND_START;
+  }
 }
 
 export function deactivate() {
-	tracker.stop();
+  tracker.stop();
 }

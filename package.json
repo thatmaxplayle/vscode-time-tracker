@@ -1,111 +1,125 @@
 {
-    "name": "timetracker",
-    "publisher": "Blade",
-    "icon": "res/icon.png",
-    "displayName": "Time Tracker",
-    "description": "Work hours time tracker. Count you work time in background, store it within project's files in the Git repo.",
-    "version": "1.1.2",
-    "engines": {
-        "vscode": "^1.48.0"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/alexblade/vscode-time-tracker.git"
-    },
-    "categories": [
-        "Other"
+  "name": "timetracker",
+  "publisher": "Blade",
+  "icon": "res/icon.png",
+  "displayName": "Time Tracker",
+  "description": "Work hours time tracker. Count you work time in background, store it within project's files in the Git repo.",
+  "version": "1.1.2",
+  "engines": {
+    "vscode": "^1.48.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alexblade/vscode-time-tracker.git"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "dist/tracker.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "timetracker.start",
+        "title": "Time Tracker: Start"
+      },
+      {
+        "command": "timetracker.stop",
+        "title": "Time Tracker: Stop"
+      },
+      {
+        "command": "timetracker.pause",
+        "title": "Time Tracker: Pause"
+      },
+      {
+        "command": "timetracker.recompute",
+        "title": "Time Tracker: Recompute total time"
+      }
     ],
-    "activationEvents": [
-        "*"
-    ],
-    "main": "dist/tracker.js",
-    "contributes": {
-        "commands": [
-            {
-                "command": "timetracker.start",
-                "title": "Time Tracker: Start"
-            },
-            {
-                "command": "timetracker.stop",
-                "title": "Time Tracker: Stop"
-            },
-            {
-                "command": "timetracker.pause",
-                "title": "Time Tracker: Pause"
-            },
-            {
-                "command": "timetracker.recompute",
-                "title": "Time Tracker: Recompute total time"
-            }
-        ],
-        "configuration": {
-            "title": "Time Tracker",
-            "properties": {
-                "timetracker.autostart.autoStartTimeTracking": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Auto start time tracking if '.timetracker' file already exists in the opened folder"
-                },
-                "timetracker.autostart.autoCreateTimeTrackingFile": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Auto create '.timetracker' file if Auto Start is active and the file does not exist"
-                },
-                "timetracker.autostart.askAboutAutoStart": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Ask user about auto start time tracking when auto start or auto create is active"
-                },
-                "timetracker.pauseAfter": {
-                    "type": "number",
-                    "default": 120,
-                    "description": "Time in seconds before the tracker will be paused. If set to 0 (zero) then auto pause will be disabled"
-                },
-                "timetracker.dotTimeTrackerIndent": {
-                    "type": [
-                        "string",
-                        "null",
-                        "integer"
-                    ],
-                    "default": null,
-                    "description": "Indentation of '.timetracker' file. If set to a number, it indicates the number of space characters to use as indentation. If set to a string, the string is used as indentation."
-                },
-                "timetracker.useCompactStatusPanel": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Use compact mode of the status bar."
-                }
-            }
+    "configuration": {
+      "title": "Time Tracker",
+      "properties": {
+        "timetracker.autostart.autoStartTimeTracking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto start time tracking if '.timetracker' file already exists in the opened folder"
+        },
+        "timetracker.autostart.autoCreateTimeTrackingFile": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto create '.timetracker' file if Auto Start is active and the file does not exist"
+        },
+        "timetracker.autostart.askAboutAutoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Ask user about auto start time tracking when auto start or auto create is active"
+        },
+        "timetracker.pauseAfter": {
+          "type": "number",
+          "default": 120,
+          "description": "Time in seconds before the tracker will be paused. If set to 0 (zero) then auto pause will be disabled"
+        },
+        "timetracker.dotTimeTrackerIndent": {
+          "type": [
+            "string",
+            "null",
+            "integer"
+          ],
+          "default": null,
+          "description": "Indentation of '.timetracker' file. If set to a number, it indicates the number of space characters to use as indentation. If set to a string, the string is used as indentation."
+        },
+        "timetracker.useCompactStatusPanel": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use compact mode of the status bar."
+        },
+        "timetracker.dotTimeTrackerName": {
+          "type": [
+            "string"
+          ],
+          "default": ".timetracker",
+          "description": "Name of the '.timetracker' file. Helpful for tracking team-member contribution to a project."
+        },
+        "timetracker.dotTimeTrackerPath": {
+          "type": "string",
+          "default": "/",
+          "description": "Path to the '.timetracker' file relative to the workspace root"
         }
-    },
-    "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "lint": "eslint src --ext ts",
-        "watch": "tsc -watch -p ./",
-        "pretest": "npm run compile && npm run lint",
-        "bundle:dev": "webpack  --env.NODE_ENV=local --env.mode=development --mode=development --config-name=vscode-time-tracker",
-        "bundle:prod": "webpack  --env.NODE_ENV=local --env.mode=production --mode=production --config-name=vscode-time-tracker",
-        "vsix": "vsce package"
-    },
-    "devDependencies": {
-        "@types/vscode": "^1.48.0",
-        "@types/glob": "^7.1.3",
-        "@types/mocha": "^8.0.0",
-        "@types/moment": "2.13.0",
-        "@types/moment-duration-format": "2.2.0",
-        "@types/node": "^14.0.27",
-        "eslint": "^7.6.0",
-        "@typescript-eslint/eslint-plugin": "^3.8.0",
-        "@typescript-eslint/parser": "^3.8.0",
-        "glob": "^7.1.6",
-        "mocha": "^8.0.1",
-        "typescript": "^3.8.3",
-        "vscode-test": "^1.4.0",
-        "moment": "^2.27.0",
-        "moment-duration-format": "^2.3.2",
-        "ts-loader": "^8.0.3",
-        "webpack": "4.44.1",
-        "webpack-cli": "3.3.12"
+      }
     }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "lint": "eslint src --ext ts",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "bundle:dev": "NODE_OPTIONS=--openssl-legacy-provider webpack --env.NODE_ENV=local --env.mode=development --mode=development --config-name=vscode-time-tracker",
+    "bundle:prod": "NODE_OPTIONS=--openssl-legacy-provider webpack --env.NODE_ENV=local --env.mode=production --mode=production --config-name=vscode-time-tracker",
+    "vsix": "vsce package"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.3",
+    "@types/minimatch": "^3.0.5",
+    "@types/mocha": "^8.0.0",
+    "@types/moment": "2.13.0",
+    "@types/moment-duration-format": "2.2.0",
+    "@types/node": "^14.0.27",
+    "@types/vscode": "^1.48.0",
+    "@typescript-eslint/eslint-plugin": "^3.8.0",
+    "@typescript-eslint/parser": "^3.8.0",
+    "eslint": "^7.6.0",
+    "glob": "^7.1.6",
+    "mocha": "^8.0.1",
+    "moment": "^2.27.0",
+    "moment-duration-format": "^2.3.2",
+    "ts-loader": "^8.0.3",
+    "typescript": "^4.9.5",
+    "vscode-test": "^1.4.0",
+    "webpack": "4.44.1",
+    "webpack-cli": "3.3.12"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
